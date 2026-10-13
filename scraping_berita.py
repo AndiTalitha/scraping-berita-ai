@@ -1,22 +1,28 @@
 
+
 import csv
+import re
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 URL = "https://www.detik.com/tag/teknologi-ai/"
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                  "AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36"
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36"
+    )
 }
 
 
 def scraping_berita():
-    print("Memulai scraping berita AI...")
+    print("Memulai scraping berita AI dari detik.com...")
 
     try:
-        response = requests.get(URL, headers=headers, timeout=20)
+        response = requests.get(
+            URL, headers=HEADERS, timeout=30
+        )
         response.raise_for_status()
     except requests.RequestException as error:
         print("Gagal mengambil halaman:", error)
@@ -30,13 +36,11 @@ def scraping_berita():
         judul = link.get_text(" ", strip=True)
         tautan = urljoin(URL, link.get("href", ""))
 
-        if len(judul) < 15:
+        # Ambil tautan artikel detik.com dengan pola ID berita
+        if not re.search(r"/d-\d+/", tautan):
             continue
 
-        if not tautan.startswith("https://www.detik.com/"):
-            continue
-
-        if "/tag/" in tautan or "/foto/" in tautan:
+        if not judul or len(judul) < 20:
             continue
 
         if tautan in url_terkumpul:
@@ -52,7 +56,8 @@ def scraping_berita():
         })
 
     if not hasil:
-        print("Tidak ada berita ditemukan. Periksa akses situs.")
+        print("Belum ada artikel yang cocok ditemukan.")
+        print("Periksa struktur halaman atau akses situs.")
         return
 
     with open(
@@ -66,11 +71,10 @@ def scraping_berita():
         writer.writeheader()
         writer.writerows(hasil)
 
-    print("Scraping selesai!")
-    print("Jumlah data:", len(hasil))
-    print("Hasil tersimpan di data_berita_ai.csv")
+    print(f"Scraping berhasil. Artikel ditemukan: {len(hasil)}")
+    print("File hasil: data_berita_ai.csv")
 
-    for nomor, berita in enumerate(hasil[:5], start=1):
+    for nomor, berita in enumerate(hasil[:10], start=1):
         print(f"{nomor}. {berita['judul']}")
         print(berita["url"])
 
